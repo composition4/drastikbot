@@ -27,7 +27,6 @@ class Drastikbot():
         self.ssl            = config['irc']['connection']['ssl']
         ### channels ###
         self.channels       = config['irc']['channels']['join']
-        self.chan_settings  = config['irc']['channels']['settings']
         ### modules ###
         self.global_prefix = config['irc']['modules']['global_prefix']
         
