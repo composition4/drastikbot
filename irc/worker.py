@@ -42,6 +42,7 @@ class Main():
 
     def text_work(self): # ^^^consider rewriting and using regex (tho it may be slower)
         self.buff = self.servqueue.get()
+        config = Config(self.irc.cd).read()
         self.bufflist = self.buff.split(' :', 1)
         self.usernick = self.bufflist[0].split('!', 1)[0][1:]
         self.irc_cmd_list  = self.bufflist[0].split(' ')
@@ -54,8 +55,8 @@ class Main():
         except IndexError: self.txtmsg = ''
         try: self.msg_nocmd = self.txtmsg.split(' ',1)[1].strip()
         except IndexError: self.msg_nocmd = ''
-        try: self.prefix = self.irc.chan_settings[self.channel]['prefix']
-        except KeyError: self.prefix = self.irc.global_prefix
+        try: self.prefix = config['irc']['channels']['settings'][self.channel]['prefix']
+        except KeyError: self.prefix = config['irc']['modules']['global_prefix']
         self.info = [self.channel, self.usernick, self.txtmsg, self.msg_nocmd, self.prefix, self.buff]
         self.command = self.txtmsg.split(' ')[0]
         

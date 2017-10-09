@@ -65,9 +65,8 @@ class Drastikbot():
             self.send(('JOIN', key, value))
             print('Joined {}'.format(key))
 
-    def part(self, chanDict, msg=None): #untested
-        for key in chanDict.items():
-            self.send(('PART', key), msg)
+    def part(self, channel, msg): #untested
+        self.send(('PART', channel), msg)
 
     def invite(self, nick, channel): #untested
         self.send(('INVITE', nick, channel))

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # coding=utf-8
 
-import os
 import sys
 from pathlib import Path, PurePath
 import importlib
+import traceback
 import sqlite3
 from config import Config
 
@@ -14,12 +14,10 @@ class Modules():
         self.debug    = debug
         self.modules   = {} # contains {Module Name : Module Callable}
         self.cmd_dict  = {} # contains {Module Name : [module, commands]}
-        self.whitelist = {} # contains {Module Name : [channels to enable the module]}
-        self.blacklist = {} # contains {Module Name : [channels to disable the module]}
         ### config ###
         conf = Config(conf_dir)
         self.config = conf.read()
-        self.load          = self.config['irc']['modules']['load']
+        self.load     = self.config['irc']['modules']['load']
         ### initiate the databases ###
         self.dbmem    = sqlite3.connect(':memory:', check_same_thread=False)
         self.dbdisk   = sqlite3.connect('{}/drastikbot.db'.format(self.conf_dir), check_same_thread=False)
@@ -30,6 +28,8 @@ class Modules():
         moduleDir = self.conf_dir + '/modules'
         path = Path(moduleDir)
         init = Path(moduleDir + '/__init__.py')
+        config  = Config(self.conf_dir).read()
+        load = config['irc']['modules']['load']
         if not path.is_dir(): # check if /module exists and make it if not
             print('[WARNING] Module directory does not exist. Making it now...')
             path.mkdir(exist_ok=True)
@@ -43,20 +43,7 @@ class Modules():
         for f in files:
             suffix = PurePath(f).suffix
             prefix = PurePath(f).stem
-            if (suffix == '.py') and (prefix in self.load):
-                # read module settings from the config file
-                try: # check for channels where the module should not post
-                    blacklist = self.config['irc']['modules']['settings'][prefix]['blacklist']
-                    self.blacklist[prefix] = blacklist
-                except KeyError: pass
-                try: # check for channels where the module should only post
-                    whitelist = self.config['irc']['modules']['settings'][prefix]['whitelist']
-                    self.whitelist[prefix] = whitelist
-                except KeyError: pass
-                if ('blacklist' and 'whitelist') in locals():
-                    print('[ERROR]: Both a blacklist and a whitelist are specified for the module "{}"'.format(prefix))
-                    os._exit(1)
-                
+            if (suffix == '.py') and (prefix in load):                
                 try: # import the module and it's requested functionality
                     modimp = importlib.import_module(prefix) #import the module
                     self.modules[prefix] = modimp
@@ -68,18 +55,30 @@ class Modules():
                 except Exception as e:
                     print('[WARNING] Module "{}" failed to load: "{}"'.format(prefix, e))
 
+    def mod_reload(self):
+        #on the fly reloading of modules
+        for value in self.modules.values():
+            importlib.reload(value)
+                    
     def mod_main(self, irc, info, command):
-        botsys   = [self.mod_import, self.__init__] # Bot system functions 
+        self.mod_reload()
+        config = Config(self.conf_dir).read()
+        botsys = [self.modules, self.mod_import] # Bot system functions 
         database = [self.dbmem, self.dbdisk]
         
         for key, value in self.cmd_dict.items(): #iterate over each module
             for v in value[0]:
                 # iterate over the module's commands | commands = value[0], sysmode = value[1]
-                try:
-                    if info[0] in (self.blacklist[key] or self.whitelist[key]):
-                    # stop if the module is blacklisted or whitelisted 
-                        break
-                except KeyError: pass
+
+                try: blacklist = config['irc']['modules']['settings'][key]['blacklist']
+                except KeyError: blacklist = None
+                try: whitelist = config['irc']['modules']['settings'][key]['whitelist']
+                except KeyError: whitelist = None
+                if 'blacklist' in locals():
+                    if info[0] in blacklist: break
+                elif 'whitelist' in locals():
+                    if info[0] in whitelist: break
+                    
                 try:
                     if '#auto#' == v : # code to always call that module
                         self.modules[key].main(v, info, database, irc)
@@ -87,5 +86,6 @@ class Modules():
                         self.modules[key].main(v, info, database, irc)
                     elif command == info[4] + v and value[1]: # .command for system modules
                         self.modules[key].main(v, info, database, irc, botsys)
-                except Exception as e:
-                    print('[WARNING] Module "{}" exitted with error: "{}"'.format(key, e))
+                except:
+                    print('[WARNING] Module "{}" exitted with error: '.format(key))
+                    traceback.print_exc()

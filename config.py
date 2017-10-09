@@ -19,4 +19,4 @@ class Config:
 
     def write(self, value): # write to the configuration file
         with open(self.config_file, 'w') as f:
-            json.dump(value, f)
+            json.dump(value, f, indent=4)
