@@ -25,6 +25,7 @@ class Modules():
         self.mod_settings = {} # contains {Module Name : {setting : value}}
         
     def mod_import(self): # import modules specified in the config
+        importlib.invalidate_caches()
         moduleDir = self.conf_dir + '/modules'
         path = Path(moduleDir)
         init = Path(moduleDir + '/__init__.py')
@@ -56,12 +57,11 @@ class Modules():
                     print('[WARNING] Module "{}" failed to load: "{}"'.format(prefix, e))
 
     def mod_reload(self):
-        #on the fly reloading of modules
         for value in self.modules.values():
             importlib.reload(value)
                     
     def mod_main(self, irc, info, command):
-        self.mod_reload()
+        self.mod_reload() # on the fly module reloading
         config = Config(self.conf_dir).read()
         botsys = [self.modules, self.mod_import] # Bot system functions 
         database = [self.dbmem, self.dbdisk]
@@ -71,9 +71,9 @@ class Modules():
                 # iterate over the module's commands | commands = value[0], sysmode = value[1]
 
                 try: blacklist = config['irc']['modules']['settings'][key]['blacklist']
-                except KeyError: blacklist = None
+                except KeyError: blacklist = ''
                 try: whitelist = config['irc']['modules']['settings'][key]['whitelist']
-                except KeyError: whitelist = None
+                except KeyError: whitelist = ''
                 if 'blacklist' in locals():
                     if info[0] in blacklist: break
                 elif 'whitelist' in locals():
