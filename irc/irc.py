@@ -99,6 +99,7 @@ class Drastikbot():
         try: self.irc_sock.connect((self.host, self.port))
         except OSError: # OSError: [Errno 113] No route to host
             print('[ERROR] No route to host. Retrying...')
+            self.irc_sock.close()
             time.sleep(5)
             return self.connect()
         
