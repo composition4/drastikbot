@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # coding=utf-8
-#ayano from yuru yuri
+
 import socket
 import ssl
 import re
@@ -23,8 +23,8 @@ class Drastikbot():
         self.auth_password  = config['irc']['connection']['auth_password']
         self.host           = config['irc']['connection']['network']
         self.port           = config['irc']['connection']['port']
-        self.net_password   = config['irc']['connection']['net_password']
-        self.ssl            = config['irc']['connection']['ssl']
+        self.net_password   = config['irc']['connection']['net_password'] or ''
+        self.ssl            = config['irc']['connection']['ssl'] or False
         ### channels ###
         self.channels       = config['irc']['channels']['join']
         ### modules ###
@@ -64,7 +64,7 @@ class Drastikbot():
             self.send(('JOIN', key, value))
             print('Joined {}'.format(key))
 
-    def part(self, channel, msg): #untested
+    def part(self, channel, msg):
         self.send(('PART', channel), msg)
 
     def invite(self, nick, channel): #untested
